@@ -8,6 +8,7 @@
 #include <QQuickItem>
 #include <QTimer>
 #include <QVariant>
+#include <QJSValue>
 
 class CallbackModel : public QAbstractListModel
 {
@@ -15,14 +16,14 @@ class CallbackModel : public QAbstractListModel
     Q_DISABLE_COPY(CallbackModel)
 
     // Properties:
-    qulonglong  m_rowCount;
+    int         m_rowCount;
     bool        m_cache;
-    qulonglong  m_cacheSize;
+    int         m_cacheSize;
     int         m_requestDelay;
     QMutex      m_mutex;
 
-    QHash< qulonglong, QVariant > m_records;
-    QList< qulonglong > m_recordsNeeded;
+    QHash< int, QVariant > m_records;
+    QList< int > m_recordsNeeded;
 
     QTimer      m_requestTimer;
 
@@ -31,17 +32,20 @@ public:
     ~CallbackModel();
 
     Q_PROPERTY( int requestDelay MEMBER m_requestDelay NOTIFY requestDelayChanged )
-    Q_PROPERTY( qulonglong rows READ rows WRITE setRows NOTIFY rowCountChanged )
+    Q_PROPERTY( int rows READ rows WRITE setRows NOTIFY rowCountChanged )
     Q_PROPERTY( bool cache MEMBER m_cache NOTIFY cacheChanged )
     Q_PROPERTY( bool cacheSize MEMBER m_cacheSize NOTIFY cacheSizeChanged )
 
     Q_INVOKABLE static CallbackModel *create() { return new CallbackModel(); }
 
-    Q_INVOKABLE qulonglong rows() { return m_rowCount; }
-    Q_INVOKABLE void setRows(qulonglong count);
+    Q_INVOKABLE int rows() { return m_rowCount; }
+    Q_INVOKABLE void setRows(int count);
 
-    Q_INVOKABLE void setRecord( qulonglong index, QVariant record ); // 'record' should be convertable to QVariantList
-    Q_INVOKABLE void setRecords( qulonglong first, QVariant records ); // 'records' should be convertable to QArray< QVariantList >
+    Q_INVOKABLE void setRecord( int index, QVariant record ); // 'record' should be convertable to QVariantList
+    Q_INVOKABLE void setRecords( int first, QVariant records ); // 'records' should be convertable to QArray< QVariantList >
+
+    Q_INVOKABLE QVariant get(int row) const;
+    Q_INVOKABLE QJSValueList loadedIndexes() const;
 
     int rowCount(const QModelIndex & parent = QModelIndex()) const;
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
@@ -52,7 +56,7 @@ public:
     void fetchMore(const QModelIndex & parent);
 */
 protected:
-    void requestData( qulonglong row );
+    void requestData( int row );
 
 protected slots:
     void slotRequestData();
@@ -63,7 +67,7 @@ signals:
     void cacheChanged();
     void cacheSizeChanged();
 
-    void recordsRequested( qulonglong first, qulonglong last );
+    void recordsRequested( int first, int last );
 };
 
 #endif // CALLBACKMODEL_H

@@ -19,7 +19,7 @@ CallbackModel::~CallbackModel()
 }
 
 
-void CallbackModel::setRecord( qulonglong idx, QVariant record )
+void CallbackModel::setRecord( int idx, QVariant record )
 {
     m_records[ idx ] = record;
 
@@ -31,7 +31,7 @@ void CallbackModel::setRecord( qulonglong idx, QVariant record )
     emit dataChanged( tl, br );
 }
 
-void CallbackModel::setRecords( qulonglong first, QVariant records )
+void CallbackModel::setRecords( int first, QVariant records )
 {
     if( records.isNull() || !records.isValid() )
         return;
@@ -53,9 +53,9 @@ void CallbackModel::setRecords( qulonglong first, QVariant records )
     emit dataChanged( tl, br );
 }
 
-void CallbackModel::setRows(qulonglong count)
+void CallbackModel::setRows(int count)
 {
-    qulonglong oldcount = m_rowCount;
+    int oldcount = m_rowCount;
     const QModelIndex idx;
 
     if( count == oldcount )
@@ -74,7 +74,7 @@ void CallbackModel::setRows(qulonglong count)
         endRemoveRows();
 
         // If we have data past the index, remove it.
-        for( qulonglong x=count; x < oldcount; x++ )
+        for( int x=count; x < oldcount; x++ )
             m_records.remove( x );
     }
 
@@ -94,8 +94,11 @@ int CallbackModel::rowCount(const QModelIndex & parent) const
     return m_rowCount;
 }
 
-void CallbackModel::requestData( qulonglong row )
+void CallbackModel::requestData( int row )
 {
+    if( row > m_rowCount || row < 0 )
+        return;
+
     m_mutex.lock();
     if( m_recordsNeeded.contains(row) )
     {
@@ -137,6 +140,30 @@ QVariant CallbackModel::data(const QModelIndex & index, int role) const
 */
 }
 
+
+QVariant CallbackModel::get(int row) const
+{
+    QVariantMap invalid;
+    invalid["valid"] = false;
+
+    if( !m_records.contains( row ) )
+    {
+        ((CallbackModel *)this)->requestData( row );
+        return invalid;
+    }
+
+    QVariant r = m_records[ row ];
+    return r;
+}
+
+QJSValueList CallbackModel::loadedIndexes() const
+{
+    QJSValueList rows;
+    foreach( int idx, m_records.keys() )
+        rows.append( QJSValue((uint)idx) );
+    return rows;
+}
+
 bool CallbackModel::hasIndex(int row, int column, const QModelIndex & parent) const
 {
     //qDebug() << "hasIndex(" << row << ", " << column << ")";
@@ -161,8 +188,9 @@ void CallbackModel::slotRequestData()
     //qDebug() << "slotRequestData()!";
     if( m_recordsNeeded.length() == 0 )
         return;
-    qSort(m_recordsNeeded);
-    qulonglong lowest=m_recordsNeeded.first(), highest=m_recordsNeeded.last();
+
+    std::sort( m_recordsNeeded.begin(), m_recordsNeeded.end() );
+    int lowest=m_recordsNeeded.first(), highest=m_recordsNeeded.last();
 
     qDebug() << "Requesting records between " << lowest << " and " << highest;
     emit recordsRequested( lowest, highest );
