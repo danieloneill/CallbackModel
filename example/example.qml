@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 import QtQuick.Window
 import QtWebSockets
 
@@ -17,9 +16,11 @@ ApplicationWindow {
     WebSocket {
         id: socket
 
-        // Node.js service (using 'ws' websocket module):
+        // Node.js service (using 'ws' websocket module) named server_node.mjs
+        // or
+        // Serve service (using 'WebSocket' module) named server_serve.js
         url: 'ws://127.0.0.1:8085/'
-	    active: true
+        active: true
 
         // Requests provide a callback to be called upon success/failure:
         property variant callbacks: ({})
