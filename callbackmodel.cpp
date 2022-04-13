@@ -1,7 +1,6 @@
 #include "callbackmodel.h"
 
 #include <time.h>
-#include <QDebug>
 
 CallbackModel::CallbackModel(QObject *parent):
     QAbstractListModel(parent),
@@ -117,8 +116,6 @@ void CallbackModel::requestData( int row )
         return;
     }
 
-    //qDebug() << "requestData(" << row << ")";
-
     m_recordsNeeded.append( row );
     m_requestTimer.start(m_requestDelay);
     m_mutex.unlock();
@@ -177,8 +174,6 @@ QJSValueList CallbackModel::loadedIndexes() const
 
 bool CallbackModel::hasIndex(int row, int column, const QModelIndex & parent) const
 {
-    //qDebug() << "hasIndex(" << row << ", " << column << ")";
-
     if( parent.isValid() )
         return false;
 
@@ -196,14 +191,12 @@ bool CallbackModel::hasIndex(int row, int column, const QModelIndex & parent) co
 
 void CallbackModel::slotRequestData()
 {
-    //qDebug() << "slotRequestData()!";
     if( m_recordsNeeded.length() == 0 )
         return;
 
     std::sort( m_recordsNeeded.begin(), m_recordsNeeded.end() );
     int lowest=m_recordsNeeded.first(), highest=m_recordsNeeded.last();
 
-    qDebug() << "Requesting records between " << lowest << " and " << highest;
     emit recordsRequested( lowest, highest );
 }
 
