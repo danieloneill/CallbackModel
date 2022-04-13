@@ -1,24 +1,24 @@
-import QtQuick 2.4
-import QtQuick.Controls 1.4
-import QtQuick.Layouts 1.1
-import QtQuick.Window 2.0
-import QtQuick.Extras 1.4
-import QtWebSockets 1.0
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
+import QtWebSockets
 
-import com.foxmoxie.CallbackModel 1.0
+import com.foxmoxie.CallbackModel
 
 ApplicationWindow {
-    width: 600
-    height: 400
+    id: exampleWindow
+
+    width: 800
+    height: 600
     visible: true
     title: 'RepairShop'
-
 
     WebSocket {
         id: socket
 
         // Node.js service (using 'ws' websocket module):
-        url: 'ws://192.168.7.14:8085/'
+        url: 'ws://127.0.0.1:8085/'
 	active: true
 
         // Requests provide a callback to be called upon success/failure:
@@ -28,27 +28,27 @@ ApplicationWindow {
         {
             // Generate a unique serial id to identify the request roundtrip.
             // (Usually I use UUIDs, but the example would then require my 'hash' module)
-            var serial = ''+(new Date()).getTime();
+            const serial = ''+(new Date()).getTime();
             req['serial'] = serial;
 
             // Store this request and callback in the callbacks hash, keyed on the serial id.
             callbacks[serial] = { 'req':req, 'callback':cb };
 
             // Make it JSON, send it.
-            var json = JSON.stringify(req, null, 2);
+            const json = JSON.stringify(req, null, 2);
             socket.sendTextMessage(json);
 
             // Generally useless:
             return serial;
         }
 
-        onTextMessageReceived: {
-            var obj = JSON.parse(message)
+        onTextMessageReceived: function(message) {
+            const obj = JSON.parse(message)
             if( obj['serial'] )
             {
                 // Find the serial id, pull it from the 'callbacks' hash, and run it.
-                var serial = obj['serial'];
-                var cb = callbacks[serial];
+                const serial = obj['serial'];
+                const cb = callbacks[serial];
                 cb.callback( cb['req'], obj );
 
                 // Remove it from the hash, don't need!
@@ -59,31 +59,21 @@ ApplicationWindow {
         }
     }
 
-
+    // This is called when the criteria (text input) changes:
     function update()
     {
-        var criteria = customerFilterEdit.text;
-        var req = {
-            'type': 'customer',
-            'action': 'count',
-            'criteria': {
-                '$or': [
-                    { 'uuid': { '$regex': criteria } },
-                    { 'name': { '$regex': criteria } },
-                    { 'email': { '$regex': criteria } },
-                    { 'phone': { '$regex': criteria } },
-                    { 'address': { '$regex': criteria } },
-                ]
-            }
-        };
+        const criteria = customerFilterEdit.text;
 
-        // Tell the model it has zero rows. This invalidates all old data which
-        // we have to do when we change the criteria:
-        customerModel.rows = 0;
+        // This is the packet that will be sent to the server:
+        const req = {
+            'action': 'count',
+            'criteria': criteria
+        };
 
         // Result packet should only provide a result count in 'results':
         socket.send(req, function(req, res) {
-            console.log("Response: "+JSON.stringify(res, null, 2));
+            // Invalidate, since our criteria has changed.
+            customerModel.invalidate();
 
             // Tell the model it "has" this many results:
             customerModel.rows = res['results'];
@@ -111,26 +101,18 @@ ApplicationWindow {
 
     function fetchRecords(first, last)
     {
-        var criteria = customerFilterEdit.text;
-        var req = {
+        const criteria = customerFilterEdit.text;
+        const req = {
             'type': 'customer',
             'action': 'list',
-            'criteria': {
-                $or: [
-                    { 'uuid': { '$regex': criteria } },
-                    { 'name': { '$regex': criteria } },
-                    { 'email': { '$regex': criteria } },
-                    { 'phone': { '$regex': criteria } },
-                    { 'address': { '$regex': criteria } },
-                ]
-            },
+            'criteria': criteria,
             'skip': first,
             'limit': last - first + 1
         };
 
         // Fetch the relevant records:
         socket.send(req, function(req, res) {
-            var entries = res['results'];
+            const entries = res['results'];
 
             // Set the records in the model. 'first' is the index to start from, 'entries' is an array of records:
             if( entries && entries.length > 0 )
@@ -148,6 +130,10 @@ ApplicationWindow {
             margins: 5
         }
         onTextChanged: {
+            // Although it's perfectly fine to just call update() here,
+            // it isn't a bad idea to delay this a fraction of a second
+            // in a few cases to allow the user to finish typing or
+            // to avoid clobbering existing queries (chill, server.)
             editTimer.start();
         }
         Timer {
@@ -161,6 +147,7 @@ ApplicationWindow {
 
     TableView {
         id: customerList
+        clip: true
         anchors {
             top: customerFilterEdit.bottom
             left: parent.left
@@ -169,35 +156,27 @@ ApplicationWindow {
             margins: 5
         }
         model: customerModel
-
-        TableViewColumn {
-            role: "name"
-            title: "Name"
-            width: 100
-        }
-        TableViewColumn {
-            role: "phone"
-            title: "Phone"
-            width: 80
-        }
-        TableViewColumn {
-            role: "address"
-            title: "Address"
-            width: 250
-        }
-        TableViewColumn {
-            role: "email"
-            title: "E-Mail"
-            width: 150
-        }
-
-        CallbackModel {
-            id: customerModel
-            requestDelay: 20 // in milliseconds
-
-            onRecordsRequested: { // first, last
-                fetchRecords(first, last);
+        delegate: Rectangle {
+            id: entry
+            implicitWidth: customerList.width
+            implicitHeight: 32
+            Row {
+                anchors.fill:parent
+                Text { text: modelData.name || '...';	width: parent.width * 0.20 }
+                Text { text: modelData.phone || '...';	width: parent.width * 0.15 }
+                Text { text: modelData.email || '...';	width: parent.width * 0.35 }
+                Text { text: modelData.address || '...';width: parent.width * 0.30 }
             }
+        }
+    }
+
+    CallbackModel {
+        id: customerModel
+        requestDelay: 20 // in milliseconds
+
+        onRecordsRequested: function(first, last)
+        {
+            exampleWindow.fetchRecords(first, last);
         }
     }
 }
