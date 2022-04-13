@@ -1,10 +1,13 @@
 TEMPLATE = lib
 TARGET = CallbackModel
 QT += qml quick
-CONFIG += qt plugin
+CONFIG += qt plugin qmltypes
 
 TARGET = $$qtLibraryTarget($$TARGET)
 uri = com.foxmoxie.CallbackModel
+
+QML_IMPORT_NAME = com.foxmoxie.CallbackModel
+QML_IMPORT_MAJOR_VERSION = 1
 
 # Input
 SOURCES += \
@@ -15,6 +18,7 @@ HEADERS += \
     callbackmodel_plugin.h \
     callbackmodel.h
 
+DISTFILES = qmldir
 OTHER_FILES = qmldir
 
 !equals(_PRO_FILE_PWD_, $$OUT_PWD) {
@@ -25,7 +29,7 @@ OTHER_FILES = qmldir
     PRE_TARGETDEPS += $$copy_qmldir.target
 }
 
-qmldir.files = qmldir
+qmldir.files = qmldir callbackmodel_metatypes.json plugins.qmltypes
 unix|win32 {
     installPath = $$[QT_INSTALL_QML]/$$replace(uri, \\., /)
     qmldir.path = $$installPath

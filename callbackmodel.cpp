@@ -86,6 +86,17 @@ void CallbackModel::setRows(int count)
     emit dataChanged( tl, br );
 }
 
+void CallbackModel::invalidate()
+{
+    beginResetModel();
+    m_rowCount = 0;
+    m_records.clear();
+    m_recordsNeeded.clear();
+    endResetModel();
+
+    emit rowCountChanged();
+}
+
 int CallbackModel::rowCount(const QModelIndex & parent) const
 {
     if( parent.isValid() )

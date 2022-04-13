@@ -13,6 +13,7 @@
 class CallbackModel : public QAbstractListModel
 {
     Q_OBJECT
+    QML_ELEMENT
     Q_DISABLE_COPY(CallbackModel)
 
     // Properties:
@@ -40,6 +41,7 @@ public:
 
     Q_INVOKABLE int rows() { return m_rowCount; }
     Q_INVOKABLE void setRows(int count);
+    Q_INVOKABLE void invalidate();
 
     Q_INVOKABLE void setRecord( int index, QVariant record ); // 'record' should be convertable to QVariantList
     Q_INVOKABLE void setRecords( int first, QVariant records ); // 'records' should be convertable to QArray< QVariantList >
