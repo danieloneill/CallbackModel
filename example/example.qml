@@ -19,7 +19,7 @@ ApplicationWindow {
 
         // Node.js service (using 'ws' websocket module):
         url: 'ws://127.0.0.1:8085/'
-	active: true
+	    active: true
 
         // Requests provide a callback to be called upon success/failure:
         property variant callbacks: ({})
@@ -92,13 +92,6 @@ ApplicationWindow {
     // for them and they'll be added to the cache (to avoid asking later),
     // but they may also be removed from the cache if not needed.
 
-    // A request will be made usually only when the View attempts to
-    // display a Delegate at that index position. The views are diligent
-    // in requesting data, but our data source (a websocket) isn't very fast
-    // so we delay request updates by 20ms. Doing this allows the model to
-    // receive a range of records needed, allowing us to request several
-    // records in a single batch. See 'requestDelay'.
-
     function fetchRecords(first, last)
     {
         const criteria = customerFilterEdit.text;
@@ -129,19 +122,9 @@ ApplicationWindow {
             right: parent.right
             margins: 5
         }
+
         onTextChanged: {
-            // Although it's perfectly fine to just call update() here,
-            // it isn't a bad idea to delay this a fraction of a second
-            // in a few cases to allow the user to finish typing or
-            // to avoid clobbering existing queries (chill, server.)
-            editTimer.start();
-        }
-        Timer {
-            id: editTimer
-            interval: 200
-            onTriggered: {
-                update();
-            }
+            exampleWindow.update();
         }
     }
 
@@ -162,6 +145,13 @@ ApplicationWindow {
             implicitHeight: 32
             Row {
                 anchors.fill:parent
+
+                // The model must reference the data!
+                // This isn't specific to CallbackModel, but if no fields of data
+                // are "displayed", the view won't request any data from the model.
+                //
+                // QML has a few methods of 'finding' the data, but that's up to you
+                // to read up on and play with. :)
                 Text { text: modelData.name || '...';	width: parent.width * 0.20 }
                 Text { text: modelData.phone || '...';	width: parent.width * 0.15 }
                 Text { text: modelData.email || '...';	width: parent.width * 0.35 }
@@ -172,7 +162,17 @@ ApplicationWindow {
 
     CallbackModel {
         id: customerModel
-        requestDelay: 20 // in milliseconds
+
+        // requestDelay delays the request (in ms) to allow for a potential signal storm
+        // to calm down before requesting more records. This can happen if, for example,
+        // the view is resized within an animation.
+        //
+        // Unfortunately there's no way for the model to know how fast/often the view will
+        // be resized, and other models just try to keep up (resulting in jank). For my
+        // purposes 20ms is fast enough that delays in input/result are imperceptible, but
+        // it's important to note that if the data source is on a distant/latent network
+        // that this delay will be compounded to existing latency.
+        requestDelay: 20
 
         onRecordsRequested: function(first, last)
         {
