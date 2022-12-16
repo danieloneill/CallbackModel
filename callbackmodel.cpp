@@ -2,11 +2,11 @@
 
 #include <time.h>
 
+#include <QDebug>
+
 CallbackModel::CallbackModel(QObject *parent):
     QAbstractListModel(parent),
     m_rowCount(0),
-    m_cache(true),
-    m_cacheSize(0),
     m_requestDelay(20)
 {
     m_requestTimer.setSingleShot(true);
@@ -39,16 +39,23 @@ void CallbackModel::setRecords( int first, QVariant records )
     if( rl.isEmpty() )
         return;
 
-    int y;
-    for( y=0; y < rl.count(); y++ )
+    for( int y=0; y < rl.count(); y++ )
     {
+        if( y+first > m_rowCount )
+        {
+            qWarning() << tr("Trying to set a record %1 when rowCount is only %2").arg(y).arg(m_rowCount);
+            continue;
+        }
+
         m_records[ y+first ] = rl[ y ];
-        m_recordsNeeded.removeOne( y+first );
+        if( m_recordsNeeded.contains( y+first ) )
+            m_recordsNeeded.removeOne( y+first );
     }
 
     QModelIndex tl = index( first, 0 );
     QModelIndex br = index( first + rl.count() - 1, 0 );
 
+    qDebug() << tr("Rows changed: %1 => %2").arg(first).arg(first+rl.count()-1);
     emit dataChanged( tl, br );
 }
 
@@ -71,10 +78,6 @@ void CallbackModel::setRows(int count)
         beginRemoveRows( idx, count, oldcount-1);
         m_rowCount = count;
         endRemoveRows();
-
-        // If we have data past the index, remove it.
-        for( int x=count; x < oldcount; x++ )
-            m_records.remove( x );
     }
 
     emit rowCountChanged();
@@ -83,6 +86,15 @@ void CallbackModel::setRows(int count)
     QModelIndex br = index( count, 0 );
 
     emit dataChanged( tl, br );
+}
+
+void CallbackModel::cleanup()
+{
+    // If we have data past the index, remove it.
+    int count = m_rowCount;
+    int oldcount = m_records.count();
+    for( int x=count; x < oldcount; x++ )
+        m_records.remove( x );
 }
 
 void CallbackModel::invalidate()
@@ -131,21 +143,11 @@ QVariant CallbackModel::data(const QModelIndex & index, int role) const
     if( !m_records.contains( index.row() ) )
     {
         ((CallbackModel *)this)->requestData( index.row() );
-        //qWarning() << "CallbackModel::data for: " << index.row();
         return invalid;
     }
 
     QVariant r = m_records[ index.row() ];
     return r;
-/*
-    if( index.column() >= r.count() )
-    {
-        ((CallbackModel *)this)->requestData( index.row() );
-        return invalid;
-    }
-
-    return r[ index.column() ];
-*/
 }
 
 
