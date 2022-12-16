@@ -18,8 +18,6 @@ class CallbackModel : public QAbstractListModel
 
     // Properties:
     int         m_rowCount;
-    bool        m_cache;
-    int         m_cacheSize;
     int         m_requestDelay;
     QMutex      m_mutex;
 
@@ -34,13 +32,12 @@ public:
 
     Q_PROPERTY( int requestDelay MEMBER m_requestDelay NOTIFY requestDelayChanged )
     Q_PROPERTY( int rows READ rows WRITE setRows NOTIFY rowCountChanged )
-    Q_PROPERTY( bool cache MEMBER m_cache NOTIFY cacheChanged )
-    Q_PROPERTY( bool cacheSize MEMBER m_cacheSize NOTIFY cacheSizeChanged )
 
     Q_INVOKABLE static CallbackModel *create() { return new CallbackModel(); }
 
     Q_INVOKABLE int rows() { return m_rowCount; }
     Q_INVOKABLE void setRows(int count);
+    Q_INVOKABLE void cleanup();
     Q_INVOKABLE void invalidate();
 
     Q_INVOKABLE void setRecord( int index, QVariant record ); // 'record' should be convertable to QVariantList
@@ -53,10 +50,7 @@ public:
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
     bool hasIndex(int row, int column, const QModelIndex & parent = QModelIndex()) const;
     QHash<int, QByteArray> roleNames() const;
-/*
-    bool canFetchMore(const QModelIndex & parent) const;
-    void fetchMore(const QModelIndex & parent);
-*/
+
 protected:
     void requestData( int row );
 
@@ -66,8 +60,6 @@ protected slots:
 signals:
     void requestDelayChanged();
     void rowCountChanged();
-    void cacheChanged();
-    void cacheSizeChanged();
 
     void recordsRequested( int first, int last );
 };
