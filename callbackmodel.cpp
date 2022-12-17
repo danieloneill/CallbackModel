@@ -75,7 +75,7 @@ void CallbackModel::setRows(int count)
     }
     else
     {
-        beginRemoveRows( idx, count, oldcount);
+        beginRemoveRows( idx, count, oldcount-1);
         m_rowCount = count;
         endRemoveRows();
     }
