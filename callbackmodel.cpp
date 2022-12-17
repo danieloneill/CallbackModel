@@ -43,7 +43,7 @@ void CallbackModel::setRecords( int first, QVariant records )
     {
         if( y+first > m_rowCount )
         {
-            qWarning() << tr("Trying to set a record %1 when rowCount is only %2").arg(y).arg(m_rowCount);
+            qWarning() << tr("Trying to set a record %1 when rowCount is only %2").arg(y+first).arg(m_rowCount);
             continue;
         }
 
